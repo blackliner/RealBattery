@@ -10,11 +10,11 @@ namespace RealBattery
     public class RealBattery : PartModule
     {
 
-        // Charge Rate, how much storedCharge is taken per call
+        // Charge Rate, how much EC/s is max possible
         [KSPField(isPersistant = false)]
         public float ChargeRate;
 
-        // Amount of Ec per storedCharge
+        // Amount of Ec per storedCharge; 1 EC = 1 kJ = 1 kWs; 3.6 kWs = 1 Wh = 3.6kJ
         [KSPField(isPersistant = false)]
         public float ChargeRatio;
 
@@ -26,9 +26,13 @@ namespace RealBattery
         [KSPField(isPersistant = false)]
         public float LowEClevel;
 
-        // chargin/discharge efficiency
+        // charge efficiency
         [KSPField(isPersistant = false)]
         public float ChargeEfficiency;
+
+        // chargin efficiency based on SOC
+        [KSPField(isPersistant = false)]
+        public FloatCurve ChargeEfficiencyCurve = new FloatCurve();
 
         // Bettery Status string
         [KSPField(isPersistant = false, guiActive = true, guiName = "Status")]
@@ -53,7 +57,7 @@ namespace RealBattery
         public override string GetInfo()
         {
             //Debug.Log("Bettery: GetInfo");
-            return String.Format("Maximum Charge Rate: {0:F2}SC/s", ChargeRate) + "\n" + String.Format("Efficiency: {0:F2}%", ChargeEfficiency * 100);
+            return String.Format("Maximum Charge Rate: {0:F2}SC/s", ChargeRate) + "EC/s\n" + String.Format("Efficiency: {0:F2}%", ChargeEfficiency * 100);
         }
 
         public override void OnFixedUpdate()
@@ -91,18 +95,22 @@ namespace RealBattery
                 SC_SOC = 0;
 
             if (EC_delta_avail > 0 && SC_SOC < 1) // Charge internal Bettery
-            {   
-                EC_delta = this.part.RequestResource(EC_id, Math.Min(TimeWarp.fixedDeltaTime * ChargeRate * ChargeRatio, EC_delta_avail));    // EC_delta = 0.1s * 1SC/s * 10EC/SC = 1EC
+            {
+                EC_delta = TimeWarp.fixedDeltaTime * ChargeRate * ChargeEfficiencyCurve.Evaluate((float)SC_SOC);  // EC_delta = 0.1s * 10EC/s = 1EC
+                EC_delta = this.part.RequestResource(EC_id, Math.Min(EC_delta, EC_delta_avail));    
 
-                SC_delta = this.part.RequestResource(SC_id, -EC_delta / ChargeRatio * ChargeEfficiency);            // SC_delta = -1EC / 10EC/SC * 0.9 = -0.09SC
+                SC_delta = -EC_delta / ChargeRatio * ChargeEfficiency;          // SC_delta = -1EC / 10EC/SC * 0.9 = -0.09SC
+                SC_delta = this.part.RequestResource(SC_id, SC_delta);                              
 
                 ChargingStatus = String.Format("Charging");
             }
             else if (EC_delta_missing > 0 && SC_SOC > 0)  // Discharge internal Bettery
             {
-                SC_delta = this.part.RequestResource(SC_id, Math.Min(TimeWarp.fixedDeltaTime * ChargeRate, EC_delta_missing / ChargeRatio));                  // SC_delta = 0.1s * 1SC/s = 0.1SC
+                SC_delta = TimeWarp.fixedDeltaTime * ChargeRate / ChargeRatio;      // SC_delta = 0.1s * 1SC/s = 0.1SC
+                SC_delta = this.part.RequestResource(SC_id, Math.Min(SC_delta, EC_delta_missing / ChargeRatio));
 
-                EC_delta = this.part.RequestResource(EC_id, -SC_delta * ChargeRatio);                               // EC_delta = -0.1SC * 10EC/SC = 1EC
+                EC_delta = -SC_delta * ChargeRatio;         // EC_delta = -0.1SC * 10EC/SC = 1EC
+                EC_delta = this.part.RequestResource(EC_id, EC_delta);                               
 
                 ChargingStatus = String.Format("Discharging");
             }
