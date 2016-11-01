@@ -36,6 +36,7 @@
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -45,6 +46,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\KSP_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -52,7 +54,7 @@
     <Compile Include="source\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="GameData\RealBattery\bettery.cfg" />
+    <None Include="GameData\RealBattery\RealBattery_1k.cfg" />
     <None Include="GameData\RealBattery\RealBattery.version" />
   </ItemGroup>
   <ItemGroup>
@@ -63,7 +65,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(TargetPath)" "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program - Kopie\GameData\Bettery1k" /Y</PostBuildEvent>
+    <PostBuildEvent>xcopy "$(TargetDir)." "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program - Kopie\GameData\RealBattery\"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
