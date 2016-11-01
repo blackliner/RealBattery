@@ -7,8 +7,8 @@
     <ProjectGuid>{757EC23D-96E1-4DAA-A4D5-57F129E9B309}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>KSPplugin1</RootNamespace>
-    <AssemblyName>KSPplugin1</AssemblyName>
+    <RootNamespace>RealBattery</RootNamespace>
+    <AssemblyName>RealBattery</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -22,10 +22,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
+    <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <OutputPath>GameData\RealBattery\</OutputPath>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -47,13 +48,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="RealBattery.cs" />
+    <Compile Include="source\RealBattery.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="bettery.cfg" />
-    <None Include="RealBattery.version" />
+    <None Include="GameData\RealBattery\bettery.cfg" />
+    <None Include="GameData\RealBattery\RealBattery.version" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy "$(TargetPath)" "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program - Kopie\GameData\Bettery1k" /Y</PostBuildEvent>
