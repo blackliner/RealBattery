@@ -5,9 +5,9 @@ using System.Text;
 
 using UnityEngine;
 
-namespace KSPplugin1
+namespace RealBattery
 {
-    public class Bettery : PartModule
+    public class RealBattery : PartModule
     {
 
         // Charge Rate, how much storedCharge is taken per call
