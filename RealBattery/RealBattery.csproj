@@ -52,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="bettery.cfg" />
+    <None Include="RealBattery.version" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
