@@ -52,10 +52,12 @@
   <ItemGroup>
     <Compile Include="source\RealBattery.cs" />
     <Compile Include="source\AssemblyInfo.cs" />
+    <Compile Include="source\RealBatteryConfiguration.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="GameData\RealBattery\RealBattery_20.cfg" />
-    <None Include="GameData\RealBattery\RealBattery_100.cfg" />
+    <None Include="GameData\RealBattery\RealBattery_mm.cfg" />
+    <None Include="old\RealBattery_20.cfg" />
+    <None Include="old\RealBattery_100.cfg" />
     <None Include="GameData\RealBattery\RealBattery.version" />
   </ItemGroup>
   <ItemGroup>
@@ -66,7 +68,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(TargetDir)." "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program - Kopie\GameData\RealBattery\" /Y</PostBuildEvent>
+    <PostBuildEvent>rmdir "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program - Kopie\GameData\RealBattery\" /s
+xcopy "$(TargetDir)." "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program - Kopie\GameData\RealBattery\" /Y</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

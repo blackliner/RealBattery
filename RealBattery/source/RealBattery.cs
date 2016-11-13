@@ -9,6 +9,10 @@ namespace RealBattery
 {
     public class RealBattery : PartModule
     {
+        // defines the battery characteristics, e.g. Lead_Acid
+        [KSPField(isPersistant = false)]
+        public string BatteryType;
+
         // max possible discharge rate, kW/t = EC/s per t
         [KSPField(isPersistant = false)]
         public float PowerDensity;
@@ -51,10 +55,36 @@ namespace RealBattery
 
         public override void OnLoad(ConfigNode node)
         {
+            loadConfig();
+
             EC_id = PartResourceLibrary.Instance.GetDefinition("ElectricCharge").id;            
             SC_id = PartResourceLibrary.Instance.GetDefinition("StoredCharge").id;
             
             base.OnLoad(node);
+        }
+
+        private void loadConfig()
+        {
+            // handle config
+            BatteryConfig batCfg = RealBatteryConfiguration.getConfig(BatteryType);
+            if (!batCfg.isPopulated)
+            {
+                batCfg = RealBatteryConfiguration.getConfig(RealBatteryConfiguration.CFG_default);
+                if (!batCfg.isPopulated)
+                {
+                    throw new Exception("No default battery config for RealBattery!");
+                }
+            }
+            PowerDensity = batCfg.PowerDensity;         
+            EnergyDensity = batCfg.EnergyDensity;       
+            ChargeEfficiency = batCfg.ChargeEfficiency; 
+            ChargeRate = batCfg.ChargeRate;             
+            HighEClevel = batCfg.HighEClevel;           
+            LowEClevel = batCfg.LowEClevel;                          
+            ChargeEfficiencyCurve = batCfg.ChargeEfficiencyCurve;
+
+
+            //finish loading this batteries config
         }
 
         public override void OnStart(StartState state)
@@ -109,20 +139,20 @@ namespace RealBattery
             if (EC_delta_avail > 0 && SC_SOC < 1) // Charge internal Bettery
             {
                 EC_delta = TimeWarp.fixedDeltaTime * DischargeRate * ChargeRate * ChargeEfficiencyCurve.Evaluate((float)SC_SOC);  // EC_delta = 0.1s * 10EC/s = 1EC
-                EC_delta = this.part.RequestResource(EC_id, Math.Min(EC_delta, EC_delta_avail));    
+                EC_delta = part.RequestResource(EC_id, Math.Min(EC_delta, EC_delta_avail));
 
                 SC_delta = -EC_delta / EC2SCratio * ChargeEfficiency;          // SC_delta = -1EC / 10EC/SC * 0.9 = -0.09SC
-                SC_delta = this.part.RequestResource(SC_id, SC_delta);                              
+                SC_delta = part.RequestResource(SC_id, SC_delta);                              
 
                 ChargingStatus = String.Format("Charging {0:F2} EC/s", EC_delta/ TimeWarp.fixedDeltaTime);
             }
             else if (EC_delta_missing > 0 && SC_SOC > 0)  // Discharge internal Bettery
             {
                 SC_delta = TimeWarp.fixedDeltaTime * DischargeRate / EC2SCratio;      // SC_delta = 0.1s * 1SC/s = 0.1SC
-                SC_delta = this.part.RequestResource(SC_id, Math.Min(SC_delta, EC_delta_missing / EC2SCratio));
+                SC_delta = part.RequestResource(SC_id, Math.Min(SC_delta, EC_delta_missing / EC2SCratio));
 
                 EC_delta = -SC_delta * EC2SCratio;         // EC_delta = -0.1SC * 10EC/SC = 1EC
-                EC_delta = this.part.RequestResource(EC_id, EC_delta);                               
+                EC_delta = part.RequestResource(EC_id, EC_delta);                               
 
                 ChargingStatus = String.Format("Discharging {0:F2} EC/s", EC_delta / TimeWarp.fixedDeltaTime);
             }
