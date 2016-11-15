@@ -15,8 +15,10 @@ namespace RealBattery
         public float ChargeRate;            // %
         public float HighEClevel;           // %
         public float LowEClevel;            // %
+        public float ThermalLosses;         // %
 
         public FloatCurve ChargeEfficiencyCurve;
+        public FloatCurve TemperatureCurve; // Efficiency
     }
 
     class RealBatteryConfiguration
@@ -47,11 +49,21 @@ namespace RealBattery
             tempCfg.ChargeRate = 0.1f;
             tempCfg.HighEClevel = 0.95f;
             tempCfg.LowEClevel = 0.9f;
+            tempCfg.ThermalLosses = 100f;
+
             tempCfg.ChargeEfficiencyCurve = new FloatCurve();
             tempCfg.ChargeEfficiencyCurve.Add(0, 1, 0, 0);
             tempCfg.ChargeEfficiencyCurve.Add(0.5f, 1, 0, -0.6666666f);
             tempCfg.ChargeEfficiencyCurve.Add(0.8f, 0.8f, -0.6666666f, -1.5f);
             tempCfg.ChargeEfficiencyCurve.Add(1, 0.5f, -1.5f, -1.5f);
+
+            tempCfg.TemperatureCurve = new FloatCurve();
+            tempCfg.TemperatureCurve.Add(200, 0.1f);
+            tempCfg.TemperatureCurve.Add(250, 0.2f);
+            tempCfg.TemperatureCurve.Add(300, 1.0f);
+            tempCfg.TemperatureCurve.Add(350, 1.0f);
+            tempCfg.TemperatureCurve.Add(400, 0.7f);
+            tempCfg.TemperatureCurve.Add(500, 0.0f);
 
             Configurations.Add(CFG_lead_acid, tempCfg);
             //-------Lead Acid Config END

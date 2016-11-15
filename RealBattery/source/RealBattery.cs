@@ -37,29 +37,51 @@ namespace RealBattery
         [KSPField(isPersistant = false)]
         public float ChargeEfficiency;
 
+        // thermal losses, how much of the transfered kW goes to heat
+        [KSPField(isPersistant = false)]
+        public float ThermalLosses;
+
         // chargin efficiency based on SOC, eg. to slow down charging on a full battery
         [KSPField(isPersistant = false)]
         public FloatCurve ChargeEfficiencyCurve = new FloatCurve();
 
-        // Bettery Status string
+        // chargin efficiency based temperature, eg. to slow down charging on a hot battery
+        [KSPField(isPersistant = false)]
+        public FloatCurve TemperatureCurve = new FloatCurve();
+
+        // Battery cgarge Status string
         [KSPField(isPersistant = false, guiActive = true, guiName = "Status")]
-        public string ChargingStatus;
+        public string BatteryChargeStatus;
+
+        // Battery temp Status string
+        [KSPField(isPersistant = false, guiActive = true, guiName = "Core Temp")]
+        public string BatteryTempStatus;
 
         // Amount of Ec per storedCharge; 3600 EC = 1SC = 3600kWs = 1kWh
         private readonly double EC2SCratio = 3600;
 
-        // maximum discharge rate EC/s or kW
-        private static double DischargeRate;
+        
+        private ModuleCoreHeat coreHeatModule;
 
         private static int EC_id, SC_id;
-
+        
         public override void OnLoad(ConfigNode node)
         {
             loadConfig();
 
+            foreach (var module in part.Modules)
+            {
+                if (module.GetType() == typeof(ModuleCoreHeat))
+                {
+                    coreHeatModule = (ModuleCoreHeat)module;
+                    Debug.Log("RealBattery: ModuleCoreHeat FOUND!!!");
+                }
+            }
+            
+
             EC_id = PartResourceLibrary.Instance.GetDefinition("ElectricCharge").id;            
             SC_id = PartResourceLibrary.Instance.GetDefinition("StoredCharge").id;
-            
+
             base.OnLoad(node);
         }
 
@@ -80,8 +102,10 @@ namespace RealBattery
             ChargeEfficiency = batCfg.ChargeEfficiency; 
             ChargeRate = batCfg.ChargeRate;             
             HighEClevel = batCfg.HighEClevel;           
-            LowEClevel = batCfg.LowEClevel;                          
+            LowEClevel = batCfg.LowEClevel;
+            ThermalLosses = batCfg.ThermalLosses;
             ChargeEfficiencyCurve = batCfg.ChargeEfficiencyCurve;
+            TemperatureCurve = batCfg.TemperatureCurve;
 
 
             //finish loading this batteries config
@@ -89,7 +113,8 @@ namespace RealBattery
 
         public override void OnStart(StartState state)
         {
-            ChargingStatus = "Initializing";
+            BatteryChargeStatus = "Initializing";
+            BatteryTempStatus = "-1 K / -1 K";
 
             part.force_activate();
 
@@ -102,10 +127,10 @@ namespace RealBattery
 
             part.mass = (float)(StoredCharge.maxAmount / EnergyDensity);
 
-            DischargeRate = part.mass * PowerDensity;
+            double DischargeRate = part.mass * PowerDensity;
 
-            return String.Format("Maximum Discharge Rate: {0:F2} EC/s", DischargeRate) + "\n"
-                 + String.Format("Maximum Charge Rate: {0:F2} EC/s", DischargeRate * ChargeRate) + "\n"
+            return String.Format("Discharge Rate: {0:F2} EC/s", DischargeRate) + "\n"
+                 + String.Format("Charge Rate: {0:F2} EC/s", DischargeRate * ChargeRate) + "\n"
                  + String.Format("Efficiency: {0:#%}", ChargeEfficiency);
         }
         
@@ -114,10 +139,21 @@ namespace RealBattery
         {
             //Debug.Log("Bettery: OnFixedUpdate");
             double EC_amount, EC_maxAmount, EC_delta, EC_delta_avail, EC_delta_missing;
-            double SC_SOC, SC_delta;
+            double SC_SOC, SC_delta, EC_thermal;
+
+            // maximum discharge rate EC/s or kW
+            double DischargeRate = part.mass * PowerDensity;
+
+            //thermal stuff
+            double currentTemp = coreHeatModule.CoreTemperature;
+            double maxTemp = coreHeatModule.CoreTempGoal;
+            double thermalEff = Math.Min(1, TemperatureCurve.Evaluate((float)currentTemp));
+            
+            BatteryTempStatus = String.Format("{0:F2} K / {0:F2} K", currentTemp, maxTemp);
+
 
             //ChargingStatus = "OnFixedUpdate";                                  
-            
+
             part.GetConnectedResourceTotals(EC_id, out EC_amount, out EC_maxAmount);
 
             if (EC_maxAmount > 0)
@@ -138,29 +174,41 @@ namespace RealBattery
 
             if (EC_delta_avail > 0 && SC_SOC < 1) // Charge internal Bettery
             {
-                EC_delta = TimeWarp.fixedDeltaTime * DischargeRate * ChargeRate * ChargeEfficiencyCurve.Evaluate((float)SC_SOC);  // EC_delta = 0.1s * 10EC/s = 1EC
+                EC_delta = TimeWarp.fixedDeltaTime * thermalEff * DischargeRate * ChargeRate * ChargeEfficiencyCurve.Evaluate((float)SC_SOC);  // EC_delta = 0.1s * 10EC/s = 1EC
                 EC_delta = part.RequestResource(EC_id, Math.Min(EC_delta, EC_delta_avail));
+
+                EC_thermal = Math.Abs(ThermalLosses * EC_delta / TimeWarp.fixedDeltaTime);
+                //part.AddThermalFlux(EC_thermal);
+                coreHeatModule.AddEnergyToCore(50 * EC_thermal);
+
 
                 SC_delta = -EC_delta / EC2SCratio * ChargeEfficiency;          // SC_delta = -1EC / 10EC/SC * 0.9 = -0.09SC
                 SC_delta = part.RequestResource(SC_id, SC_delta);                              
 
-                ChargingStatus = String.Format("Charging {0:F2} EC/s", EC_delta/ TimeWarp.fixedDeltaTime);
+                BatteryChargeStatus = String.Format("Charging {0:F2} EC/s", EC_delta/ TimeWarp.fixedDeltaTime);
             }
             else if (EC_delta_missing > 0 && SC_SOC > 0)  // Discharge internal Bettery
             {
-                SC_delta = TimeWarp.fixedDeltaTime * DischargeRate / EC2SCratio;      // SC_delta = 0.1s * 1SC/s = 0.1SC
-                SC_delta = part.RequestResource(SC_id, Math.Min(SC_delta, EC_delta_missing / EC2SCratio));
+                SC_delta = TimeWarp.fixedDeltaTime * thermalEff * DischargeRate / EC2SCratio;      // SC_delta = 0.1s * 1SC/s = 0.1SC
+                SC_delta = part.RequestResource(SC_id, Math.Min(SC_delta, EC_delta_missing / EC2SCratio));                
 
                 EC_delta = -SC_delta * EC2SCratio;         // EC_delta = -0.1SC * 10EC/SC = 1EC
-                EC_delta = part.RequestResource(EC_id, EC_delta);                               
+                EC_delta = part.RequestResource(EC_id, EC_delta);
 
-                ChargingStatus = String.Format("Discharging {0:F2} EC/s", EC_delta / TimeWarp.fixedDeltaTime);
+                EC_thermal = Math.Abs(ThermalLosses * EC_delta / TimeWarp.fixedDeltaTime);
+                //part.AddThermalFlux(EC_thermal);
+                coreHeatModule.AddEnergyToCore(50 * EC_thermal);
+
+                BatteryChargeStatus = String.Format("Discharging {0:F2} EC/s", EC_delta / TimeWarp.fixedDeltaTime);
             }
             else
             {
-                ChargingStatus = String.Format("idle");
+                BatteryChargeStatus = String.Format("idle");
             }
+
+
             
+
         }
 
 
