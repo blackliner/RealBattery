@@ -31,7 +31,7 @@ namespace RealBattery
 
         // how much of the discarche rate is usable for charging
         [KSPField(isPersistant = false)]
-        public float ChargeRate;
+        public float ChargeRatio;
 
         // charge efficiency, eg 0.90 for a 90% efficiency during charging
         [KSPField(isPersistant = false)]
@@ -100,7 +100,7 @@ namespace RealBattery
             PowerDensity = batCfg.PowerDensity;         
             EnergyDensity = batCfg.EnergyDensity;       
             ChargeEfficiency = batCfg.ChargeEfficiency; 
-            ChargeRate = batCfg.ChargeRate;             
+            ChargeRatio = batCfg.ChargeRatio;             
             HighEClevel = batCfg.HighEClevel;           
             LowEClevel = batCfg.LowEClevel;
             ThermalLosses = batCfg.ThermalLosses;
@@ -130,7 +130,7 @@ namespace RealBattery
             double DischargeRate = part.mass * PowerDensity;
 
             return String.Format("Discharge Rate: {0:F2} EC/s", DischargeRate) + "\n"
-                 + String.Format("Charge Rate: {0:F2} EC/s", DischargeRate * ChargeRate) + "\n"
+                 + String.Format("Charge Rate: {0:F2} EC/s", DischargeRate * ChargeRatio) + "\n"
                  + String.Format("Efficiency: {0:#%}", ChargeEfficiency);
         }
         
@@ -140,6 +140,7 @@ namespace RealBattery
             //Debug.Log("Bettery: OnFixedUpdate");
             double EC_amount, EC_maxAmount, EC_delta, EC_delta_avail, EC_delta_missing;
             double SC_SOC, SC_delta, EC_thermal;
+            double EC_power;
 
             // maximum discharge rate EC/s or kW
             double DischargeRate = part.mass * PowerDensity;
@@ -149,7 +150,7 @@ namespace RealBattery
             double maxTemp = coreHeatModule.CoreTempGoal;
             double thermalEff = Math.Min(1, TemperatureCurve.Evaluate((float)currentTemp));
             
-            BatteryTempStatus = String.Format("{0:F2} K / {0:F2} K", currentTemp, maxTemp);
+            BatteryTempStatus = String.Format("{0:F1} K / {1:F1} K", currentTemp, maxTemp);
 
 
             //ChargingStatus = "OnFixedUpdate";                                  
@@ -174,10 +175,12 @@ namespace RealBattery
 
             if (EC_delta_avail > 0 && SC_SOC < 1) // Charge internal Bettery
             {
-                EC_delta = TimeWarp.fixedDeltaTime * thermalEff * DischargeRate * ChargeRate * ChargeEfficiencyCurve.Evaluate((float)SC_SOC);  // EC_delta = 0.1s * 10EC/s = 1EC
+                EC_delta = TimeWarp.fixedDeltaTime * thermalEff * DischargeRate * ChargeRatio * ChargeEfficiencyCurve.Evaluate((float)SC_SOC);  // EC_delta = 0.1s * 10EC/s = 1EC
                 EC_delta = part.RequestResource(EC_id, Math.Min(EC_delta, EC_delta_avail));
 
-                EC_thermal = Math.Abs(ThermalLosses * EC_delta / TimeWarp.fixedDeltaTime);
+                EC_power = EC_delta / TimeWarp.fixedDeltaTime;
+
+                EC_thermal = ThermalLosses * EC_power * EC_power / DischargeRate * TimeWarp.fixedDeltaTime;
                 //part.AddThermalFlux(EC_thermal);
                 coreHeatModule.AddEnergyToCore(50 * EC_thermal);
 
@@ -195,15 +198,17 @@ namespace RealBattery
                 EC_delta = -SC_delta * EC2SCratio;         // EC_delta = -0.1SC * 10EC/SC = 1EC
                 EC_delta = part.RequestResource(EC_id, EC_delta);
 
-                EC_thermal = Math.Abs(ThermalLosses * EC_delta / TimeWarp.fixedDeltaTime);
+                EC_power = EC_delta / TimeWarp.fixedDeltaTime;
+
+                EC_thermal = ThermalLosses * EC_power * EC_power / DischargeRate * TimeWarp.fixedDeltaTime;
                 //part.AddThermalFlux(EC_thermal);
                 coreHeatModule.AddEnergyToCore(50 * EC_thermal);
 
-                BatteryChargeStatus = String.Format("Discharging {0:F2} EC/s", EC_delta / TimeWarp.fixedDeltaTime);
+                BatteryChargeStatus = String.Format("Discharging {0:F1} EC/s", EC_delta / TimeWarp.fixedDeltaTime);
             }
             else
             {
-                BatteryChargeStatus = String.Format("idle");
+                BatteryChargeStatus = String.Format("idle; {0:F1} % EC", EC_amount / EC_maxAmount * 100);
             }
 
 

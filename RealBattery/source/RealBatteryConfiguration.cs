@@ -12,7 +12,7 @@ namespace RealBattery
         public float PowerDensity;          // kW/t
         public float EnergyDensity;         // kWh/t
         public float ChargeEfficiency;      // %
-        public float ChargeRate;            // %
+        public float ChargeRatio;            // %
         public float HighEClevel;           // %
         public float LowEClevel;            // %
         public float ThermalLosses;         // %
@@ -46,10 +46,10 @@ namespace RealBattery
             tempCfg.PowerDensity = 200f;
             tempCfg.EnergyDensity = 20f;
             tempCfg.ChargeEfficiency = 0.9f;
-            tempCfg.ChargeRate = 0.1f;
+            tempCfg.ChargeRatio = 0.1f;
             tempCfg.HighEClevel = 0.95f;
             tempCfg.LowEClevel = 0.9f;
-            tempCfg.ThermalLosses = 100f;
+            tempCfg.ThermalLosses = 1f;
 
             tempCfg.ChargeEfficiencyCurve = new FloatCurve();
             tempCfg.ChargeEfficiencyCurve.Add(0, 1, 0, 0);
