@@ -49,6 +49,23 @@ namespace RealBattery
         [KSPField(isPersistant = false)]
         public FloatCurve TemperatureCurve = new FloatCurve();
 
+        // for load balancing
+        [KSPField(isPersistant = false)]
+        public double SC_SOC = 1;
+
+        [KSPField(isPersistant = false)]
+        public bool LoadMaster = true; // true = load master; false = load slave
+
+        [KSPField(isPersistant = false)]
+        public int loadMasterCallMode = 0; // 0 = not called; 1 = discharge; 2 = charge;
+
+        // for slowing down the charge/discharge status
+        private const double statusLowPassTau = 2;
+        private double lastECpower = 0;
+        
+
+        //------GUI
+
         // Battery cgarge Status string
         [KSPField(isPersistant = false, guiActive = true, guiName = "Status")]
         public string BatteryChargeStatus;
@@ -87,20 +104,24 @@ namespace RealBattery
         private ModuleCoreHeat coreHeatModule;
 
         private static int EC_id, SC_id;
-        
-        public override void OnLoad(ConfigNode node)
+
+        public override void OnAwake()
         {
+            Debug.Log("RealBattery: OnAwake");
+
             loadConfig();
 
-            foreach (var module in part.Modules)
-            {
-                if (module.GetType() == typeof(ModuleCoreHeat))
-                {
-                    coreHeatModule = (ModuleCoreHeat)module;
-                    Debug.Log("RealBattery: ModuleCoreHeat FOUND!!!");
-                }
-            }
-            
+            EC_id = PartResourceLibrary.Instance.GetDefinition("ElectricCharge").id;
+            SC_id = PartResourceLibrary.Instance.GetDefinition("StoredCharge").id;
+
+            base.OnAwake();
+        }
+
+        public override void OnLoad(ConfigNode node)
+        {
+            Debug.Log("RealBattery: OnLoad");
+
+            loadConfig();
 
             EC_id = PartResourceLibrary.Instance.GetDefinition("ElectricCharge").id;            
             SC_id = PartResourceLibrary.Instance.GetDefinition("StoredCharge").id;
@@ -121,7 +142,7 @@ namespace RealBattery
                 }
             }
 
-            BatteryTech = RealBatteryConfiguration.getBatteryTypesFriendlyName(batCfg.batteryType);
+            BatteryTech = RealBatteryConfiguration.getBatteryTypesFriendlyName((BatteryTypes)BatteryType);
 
             PowerDensity = batCfg.PowerDensity;         
             EnergyDensity = batCfg.EnergyDensity;       
@@ -133,13 +154,25 @@ namespace RealBattery
             ChargeEfficiencyCurve = batCfg.ChargeEfficiencyCurve;
             TemperatureCurve = batCfg.TemperatureCurve;
 
-            if (coreHeatModule != null)
-            {
-                coreHeatModule.CoreTempGoal = batCfg.CoreTempGoal;
-            }
             //finish loading this batteries config
 
             double DischargeRate = part.mass * PowerDensity;
+
+            foreach (var module in part.Modules)
+            {
+                if (module.GetType() == typeof(ModuleCoreHeat))
+                {
+                    coreHeatModule = (ModuleCoreHeat)module;
+                    Debug.Log("RealBattery: ModuleCoreHeat FOUND!!!");
+                }
+            }
+
+            if (coreHeatModule != null)
+            {
+                coreHeatModule.CoreTempGoal = batCfg.CoreTempGoal;
+                coreHeatModule.MaxCoolant = 2 * DischargeRate;
+            }
+
 
             DischargeInfoEditor = String.Format("{0:F2}", DischargeRate);
             ChargeInfoEditor = String.Format("{0:F2}", DischargeRate * ChargeRatio);
@@ -149,8 +182,8 @@ namespace RealBattery
             if (StoredCharge != null)
             {
                 StoredCharge.maxAmount = part.mass * EnergyDensity;
-                StoredCharge.amount = part.mass * EnergyDensity;
-
+                StoredCharge.amount = SC_SOC * part.mass * EnergyDensity;
+                
                 UIPartActionWindow[] partWins = FindObjectsOfType<UIPartActionWindow>();
                 foreach (UIPartActionWindow partWin in partWins)
                 {
@@ -162,8 +195,15 @@ namespace RealBattery
 
         public override void OnStart(StartState state)
         {
+            Debug.Log("RealBattery: OnStart");
+
             BatteryChargeStatus = "Initializing";
             BatteryTempStatus = "-1 K / -1 K";
+
+            readAllRealBatteryModules();
+
+            GameEvents.onVesselChange.Add(readAllRealBatteryModules);
+            GameEvents.onVesselStandardModification.Add(readAllRealBatteryModules);            
 
             part.force_activate();
 
@@ -172,21 +212,93 @@ namespace RealBattery
 
         public override string GetInfo()
         {
-            //part.mass = (float)(StoredCharge.maxAmount / EnergyDensity);
+            Debug.Log("RealBattery: GetInfo");
 
-            double DischargeRate = part.mass * PowerDensity;
+            loadConfig();
 
-            return String.Format("Discharge Rate: {0:F2} EC/s", DischargeRate) + "\n"
+            double DischargeRate = part.mass * PowerDensity;            
+
+            return "Type: " + RealBatteryConfiguration.getBatteryTypesFriendlyName((BatteryTypes)BatteryType) + "\n"
+                 + String.Format("Discharge Rate: {0:F2} EC/s", DischargeRate) + "\n"
                  + String.Format("Charge Rate: {0:F2} EC/s", DischargeRate * ChargeRatio) + "\n"
                  + String.Format("Efficiency: {0:#%}", ChargeEfficiency);
+        }
+
+        private static List<RealBattery> rbList;
+        public void readAllRealBatteryModules(Vessel gamEventVessel=null)
+        {
+            if (vessel == null)
+            {
+                //nothing to do
+                return;
+            }
+
+            // get a fresh list
+            if (rbList == null)
+            {
+                rbList = new List<RealBattery>();
+            }
+            else
+            {
+                rbList.Clear();
+            }
+
+            foreach (var parts in vessel.Parts)
+            {
+                foreach (var module in parts.Modules)
+                    {
+                    if (module is RealBattery)
+                    {
+                        rbList.Add(module as RealBattery);
+                    }
+                }                
+            }
+
         }
         
 
         public override void OnFixedUpdate()
         {
-            //Debug.Log("Bettery: OnFixedUpdate");
+            // load balancing part
+            if (LoadMaster) //i am a loadmaster
+            {
+                rbList.ForEach(rb => rb.LoadMaster = false);    // make them all slaves
+                LoadMaster = true;                             // ..and i am the master
+            }
+
+            if (loadMasterCallMode == 0) // KSP called my OnFixedUpdate, reset LoadMaster
+            {
+                if (LoadMaster == false) //if i am a slave
+                {
+                    LoadMaster = true; // try to become a master in the next run
+                    return; //only obey the load master
+                }
+                else if (LoadMaster) // i am the master, and i call everyone to work in a sorted fashion
+                {
+                    // sort the list by SC_SOC for discharging and run discharge
+                    rbList = rbList.OrderByDescending(rb => rb.SC_SOC).ToList();
+
+                    rbList.ForEach(rb => rb.loadMasterCallMode = 1); //set everyone to discharge
+                    rbList.ForEach(rb => rb.OnFixedUpdate());
+
+                    //now reverse cowgirl for charging
+                    rbList.Reverse();
+
+                    rbList.ForEach(rb => rb.loadMasterCallMode = 2); //set everyone to charge
+                    rbList.ForEach(rb => rb.OnFixedUpdate());
+                    return; // hard work is done
+                }                
+            }
+
+            // apparently, a loadmaster called me for doing my job. LETS GO!!!
+            
+
+            
+
+            // normal battery part
+
             double EC_amount, EC_maxAmount, EC_delta, EC_delta_avail, EC_delta_missing;
-            double SC_SOC, SC_delta, EC_thermal;
+            double SC_delta, EC_thermal;
             double EC_power;
 
             // maximum discharge rate EC/s or kW
@@ -198,9 +310,6 @@ namespace RealBattery
             double thermalEff = Math.Min(1, TemperatureCurve.Evaluate((float)currentTemp));
             
             BatteryTempStatus = String.Format("{0:F1} K / {1:F1} K", currentTemp, maxTemp);
-
-
-            //ChargingStatus = "OnFixedUpdate";                                  
 
             part.GetConnectedResourceTotals(EC_id, out EC_amount, out EC_maxAmount);
 
@@ -215,12 +324,8 @@ namespace RealBattery
                 EC_delta_missing = 0;
             }
 
-            if (part.Resources["StoredCharge"].maxAmount > 0)
-                SC_SOC = part.Resources["StoredCharge"].amount / part.Resources["StoredCharge"].maxAmount;
-            else
-                SC_SOC = 0;
-
-            if (EC_delta_avail > 0 && SC_SOC < 1) // Charge internal Bettery
+            
+            if (loadMasterCallMode == 2 && EC_delta_avail > 0 && SC_SOC < 1) // Charge internal Bettery
             {
                 double SOC_ChargeEfficiency = Math.Min(1,ChargeEfficiencyCurve.Evaluate((float)SC_SOC));
 
@@ -237,9 +342,9 @@ namespace RealBattery
                 SC_delta = -EC_delta / RealBatteryConfiguration.EC2SCratio * ChargeEfficiency;          // SC_delta = -1EC / 10EC/SC * 0.9 = -0.09SC
                 SC_delta = part.RequestResource(SC_id, SC_delta);                              
 
-                BatteryChargeStatus = String.Format("Charging {0:F2} EC/s", EC_delta/ TimeWarp.fixedDeltaTime);
+                //BatteryChargeStatus = String.Format("Charging {0:F2} EC/s", EC_power);
             }
-            else if (EC_delta_missing > 0 && SC_SOC > 0)  // Discharge internal Bettery
+            else if (loadMasterCallMode == 1 && EC_delta_missing > 0 && SC_SOC > 0)  // Discharge internal Bettery
             {
                 SC_delta = TimeWarp.fixedDeltaTime * thermalEff * DischargeRate / RealBatteryConfiguration.EC2SCratio;      // SC_delta = 0.1s * 1SC/s = 0.1SC
                 SC_delta = part.RequestResource(SC_id, Math.Min(SC_delta, EC_delta_missing / RealBatteryConfiguration.EC2SCratio));                
@@ -253,7 +358,30 @@ namespace RealBattery
                 //part.AddThermalFlux(EC_thermal);
                 coreHeatModule.AddEnergyToCore(50 * EC_thermal);
 
-                BatteryChargeStatus = String.Format("Discharging {0:F1} EC/s", EC_delta / TimeWarp.fixedDeltaTime);
+                //BatteryChargeStatus = String.Format("Discharging {0:F1} EC/s", EC_power);
+            }
+            else
+            {
+                EC_power = 0;
+                //BatteryChargeStatus = String.Format("idle; {0:F1} % EC", EC_amount / EC_maxAmount * 100);
+            }
+
+            //update SOC field for usage in other modules (load balancing)
+            SC_SOC = part.Resources["StoredCharge"].amount / part.Resources["StoredCharge"].maxAmount;
+
+
+            // GUI
+            double statusLowPassTauRatio = TimeWarp.fixedDeltaTime / (statusLowPassTau + TimeWarp.fixedDeltaTime);
+
+            lastECpower = lastECpower * (1 - statusLowPassTauRatio) + 2 * EC_power * statusLowPassTauRatio; // twice, because function is called twice from the master, so there is always a +0 run
+
+            if (lastECpower < -0.001)
+            {
+                BatteryChargeStatus = String.Format("Discharging {0:F1} EC/s", lastECpower);
+            }
+            else if (lastECpower > 0.001)
+            {
+                BatteryChargeStatus = String.Format("Charging {0:F1} EC/s", lastECpower);
             }
             else
             {
@@ -261,8 +389,7 @@ namespace RealBattery
             }
 
 
-            
-
+            loadMasterCallMode = 0; // reset for next run
         }
 
 

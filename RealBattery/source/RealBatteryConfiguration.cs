@@ -69,7 +69,7 @@ namespace RealBattery
             //-------Lead Acid Config START
             tempCfg = new BatteryConfig();
             tempCfg.batteryType = BatteryTypes.CFG_lead_acid;
-            tempCfg.PowerDensity = 200f;
+            tempCfg.PowerDensity = 400f;
             tempCfg.EnergyDensity = 20f;
             tempCfg.ChargeEfficiency = 0.9f;
             tempCfg.ChargeRatio = 0.1f;
@@ -134,6 +134,7 @@ namespace RealBattery
             if (!Configurations.ContainsKey(config))
             {
                 retCfg.isPopulated = false;
+                Debug.Log("RealBatter: Warning, config is not populated!");
             }
             else
             {
