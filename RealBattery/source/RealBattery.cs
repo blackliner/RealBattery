@@ -62,9 +62,13 @@ namespace RealBattery
         // for slowing down the charge/discharge status
         private const double statusLowPassTau = 2;
         private double lastECpower = 0;
-        
+
 
         //------GUI
+
+        // Battery cgarge Status string
+        [KSPField(isPersistant = false, guiActive = false, guiName = "Dynamic Level")]
+        public string EC_dynamicLevelStatus;
 
         // Battery cgarge Status string
         [KSPField(isPersistant = false, guiActive = true, guiName = "Status")]
@@ -75,7 +79,7 @@ namespace RealBattery
         public string BatteryTempStatus;
 
         // Battery tech string for Editor
-        [KSPField(isPersistant = false, guiActive = false, guiActiveEditor = true, guiName = "Tech")]
+        [KSPField(isPersistant = false, guiActive = true, guiActiveEditor = true, guiName = "Tech")]
         public string BatteryTech;
 
         // discharge string for Editor
@@ -87,7 +91,7 @@ namespace RealBattery
         public string ChargeInfoEditor;
 
         // efficiency string for Editor
-        [KSPField(isPersistant = false, guiActive = false, guiActiveEditor = true, guiName = "Efficiency", guiUnits = "%")]
+        [KSPField(isPersistant = false, guiActive = false, guiActiveEditor = false, guiName = "Efficiency", guiUnits = "%")]
         public string EfficiencyInfoEditor;
 
         [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "Next tech", active = true)]
@@ -156,7 +160,7 @@ namespace RealBattery
 
             //finish loading this batteries config
 
-            double DischargeRate = part.mass * PowerDensity;
+            double DischargeRate = part.mass * PowerDensity; //kW
 
             foreach (var module in part.Modules)
             {
@@ -170,7 +174,7 @@ namespace RealBattery
             if (coreHeatModule != null)
             {
                 coreHeatModule.CoreTempGoal = batCfg.CoreTempGoal;
-                coreHeatModule.MaxCoolant = 2 * DischargeRate;
+                coreHeatModule.MaxCoolant = 2 * DischargeRate * ThermalLosses;
             }
 
 
@@ -183,7 +187,20 @@ namespace RealBattery
             {
                 StoredCharge.maxAmount = part.mass * EnergyDensity;
                 StoredCharge.amount = SC_SOC * part.mass * EnergyDensity;
-                
+
+
+                // setup ECbufferRatio
+                PartResource ElectricCharge = part.Resources.Get("ElectricCharge");
+                if (ElectricCharge == null)
+                {
+                    ElectricCharge = part.Resources.Add("ElectricCharge", 10, 10, true, true, true, true, PartResource.FlowMode.Both);
+                }
+
+                ElectricCharge.maxAmount = DischargeRate;
+                ElectricCharge.amount = DischargeRate;
+
+
+
                 UIPartActionWindow[] partWins = FindObjectsOfType<UIPartActionWindow>();
                 foreach (UIPartActionWindow partWin in partWins)
                 {
@@ -255,8 +272,10 @@ namespace RealBattery
             }
 
         }
-        
 
+        private static double EC_dynamicLevel = 0.5; // % dynamical moving charge/discharge threshold, valid for all batteries (on this vessel?)
+        private const double EC_dynamicStep = 0.01; // %, for moving 
+        private const double EC_dynamicDelta = 0.05; // % difference between min and max value
         public override void OnFixedUpdate()
         {
             // load balancing part
@@ -291,9 +310,9 @@ namespace RealBattery
             }
 
             // apparently, a loadmaster called me for doing my job. LETS GO!!!
-            
 
             
+
 
             // normal battery part
 
@@ -311,12 +330,23 @@ namespace RealBattery
             
             BatteryTempStatus = String.Format("{0:F1} K / {1:F1} K", currentTemp, maxTemp);
 
-            part.GetConnectedResourceTotals(EC_id, out EC_amount, out EC_maxAmount);
+            // increase this batteries buffer for warp
+            //PartResource EC_buffer = part.Resources.Get("ElectricCharge");
+            //EC_buffer.amount = EC_buffer.amount / lastWarpRate * TimeWarp.CurrentRate;
+            //EC_buffer.maxAmount = EC_buffer.maxAmount / lastWarpRate * TimeWarp.CurrentRate;
+            //lastWarpRate = TimeWarp.CurrentRate;
 
+            // get vessel wide EC status (missing or available)
+            part.GetConnectedResourceTotals(EC_id, out EC_amount, out EC_maxAmount);
             if (EC_maxAmount > 0)
             {
-                EC_delta_avail = EC_amount - EC_maxAmount * HighEClevel;  //amount of available EC for charging: 980 - 1000 * 0.95 = 30EC to spare
-                EC_delta_missing = EC_maxAmount * LowEClevel - EC_amount;  //amount of missing EC for discharging: 1000 * 0.9 - 500 = 400EC missing
+                double minVal = (LowEClevel + EC_dynamicDelta / 2);
+                double maxVal = (HighEClevel - EC_dynamicDelta / 2);
+                EC_dynamicLevel = EC_dynamicLevel < minVal ? minVal : EC_dynamicLevel > maxVal ? maxVal : EC_dynamicLevel;
+                //EC_dynamicLevel = EC_dynamicLevel > (HighEClevel - EC_dynamicDelta / 2) ? (HighEClevel - EC_dynamicDelta / 2) : EC_dynamicLevel;
+
+                EC_delta_avail = EC_amount - EC_maxAmount * (EC_dynamicLevel + EC_dynamicDelta / 2);  //amount of available EC for charging: 980 - 1000 * 0.95 = 30EC to spare
+                EC_delta_missing = EC_maxAmount * (EC_dynamicLevel - EC_dynamicDelta / 2) - EC_amount;  //amount of missing EC for discharging: 1000 * 0.9 - 500 = 400EC missing
             }
             else
             {
@@ -324,12 +354,16 @@ namespace RealBattery
                 EC_delta_missing = 0;
             }
 
-            
-            if (loadMasterCallMode == 2 && EC_delta_avail > 0 && SC_SOC < 1) // Charge internal Bettery
+            // get part EC status
+            //double part_EC_amount = part.Resources["ElectricCharge"].amount;
+            //double part_EC_maxAmount = part.Resources["ElectricCharge"].maxAmount;
+
+            if (loadMasterCallMode == 2 && EC_delta_avail > 0 && SC_SOC < 1) // Charge battery
             {
                 double SOC_ChargeEfficiency = Math.Min(1,ChargeEfficiencyCurve.Evaluate((float)SC_SOC));
 
                 EC_delta = TimeWarp.fixedDeltaTime * thermalEff * DischargeRate * ChargeRatio * SOC_ChargeEfficiency;  // EC_delta = 0.1s * 10EC/s = 1EC
+                if (EC_delta > EC_delta_avail) EC_dynamicLevel -= EC_dynamicStep; // if i am limited by the available EC, change the dynamic
                 EC_delta = part.RequestResource(EC_id, Math.Min(EC_delta, EC_delta_avail));
 
                 EC_power = EC_delta / TimeWarp.fixedDeltaTime;
@@ -344,9 +378,10 @@ namespace RealBattery
 
                 //BatteryChargeStatus = String.Format("Charging {0:F2} EC/s", EC_power);
             }
-            else if (loadMasterCallMode == 1 && EC_delta_missing > 0 && SC_SOC > 0)  // Discharge internal Bettery
+            else if (loadMasterCallMode == 1 && EC_delta_missing > 0 && SC_SOC > 0)  // Discharge battery
             {
                 SC_delta = TimeWarp.fixedDeltaTime * thermalEff * DischargeRate / RealBatteryConfiguration.EC2SCratio;      // SC_delta = 0.1s * 1SC/s = 0.1SC
+                if (SC_delta > EC_delta_missing / RealBatteryConfiguration.EC2SCratio) EC_dynamicLevel += EC_dynamicStep; // if i am limited by the missing EC, change the dynamic
                 SC_delta = part.RequestResource(SC_id, Math.Min(SC_delta, EC_delta_missing / RealBatteryConfiguration.EC2SCratio));                
 
                 EC_delta = -SC_delta * RealBatteryConfiguration.EC2SCratio;         // EC_delta = -0.1SC * 10EC/SC = 1EC
@@ -365,6 +400,8 @@ namespace RealBattery
                 EC_power = 0;
                 //BatteryChargeStatus = String.Format("idle; {0:F1} % EC", EC_amount / EC_maxAmount * 100);
             }
+
+            
 
             //update SOC field for usage in other modules (load balancing)
             SC_SOC = part.Resources["StoredCharge"].amount / part.Resources["StoredCharge"].maxAmount;
@@ -387,6 +424,8 @@ namespace RealBattery
             {
                 BatteryChargeStatus = String.Format("idle; {0:F1} % EC", EC_amount / EC_maxAmount * 100);
             }
+
+            EC_dynamicLevelStatus = String.Format("{0:F1} % EC", EC_dynamicLevel * 100); 
 
 
             loadMasterCallMode = 0; // reset for next run

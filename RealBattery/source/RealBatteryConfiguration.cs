@@ -18,6 +18,7 @@ namespace RealBattery
         public float LowEClevel;            // %
         public float ThermalLosses;         // %
         public float CoreTempGoal;
+        public float ECbufferRatio;
 
         public FloatCurve ChargeEfficiencyCurve;
         public FloatCurve TemperatureCurve; // Efficiency
@@ -27,7 +28,8 @@ namespace RealBattery
     {
         //CFG_default = 1, // former "Lead_Acid"
         CFG_lead_acid = 1, // former "Lead_Acid",
-        CFG_li_ion = 2 //former "Li_Ion";
+        CFG_lead_acid_singleUse = 2, // former "Lead_Acid",
+        CFG_li_ion = 3 //former "Li_Ion";
     }
 
     class RealBatteryConfiguration
@@ -46,6 +48,7 @@ namespace RealBattery
             switch (theType)
             {
                 case BatteryTypes.CFG_lead_acid: return "Lead Acid";
+                case BatteryTypes.CFG_lead_acid_singleUse: return "Single use Lead Acid";
                 case BatteryTypes.CFG_li_ion: return "Li Ion";
                 default: return "unknown";
             }
@@ -65,7 +68,6 @@ namespace RealBattery
 
             BatteryConfig tempCfg;
 
-
             //-------Lead Acid Config START
             tempCfg = new BatteryConfig();
             tempCfg.batteryType = BatteryTypes.CFG_lead_acid;
@@ -73,10 +75,42 @@ namespace RealBattery
             tempCfg.EnergyDensity = 20f;
             tempCfg.ChargeEfficiency = 0.9f;
             tempCfg.ChargeRatio = 0.1f;
-            tempCfg.HighEClevel = 0.95f;
-            tempCfg.LowEClevel = 0.9f;
-            tempCfg.ThermalLosses = 1f;
+            tempCfg.HighEClevel = 0.9f;
+            tempCfg.LowEClevel = 0.1f;
+            tempCfg.ThermalLosses = 0.1f;
             tempCfg.CoreTempGoal = 320f; //273 + 47°C
+            tempCfg.ECbufferRatio = 1.0f;
+
+            tempCfg.ChargeEfficiencyCurve = new FloatCurve();
+            tempCfg.ChargeEfficiencyCurve.Add(0.0f, 1.0f);
+            tempCfg.ChargeEfficiencyCurve.Add(0.5f, 1.0f);
+            tempCfg.ChargeEfficiencyCurve.Add(0.8f, 0.8f);
+            tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.5f);
+
+            tempCfg.TemperatureCurve = new FloatCurve();
+            tempCfg.TemperatureCurve.Add(200, 0.1f);
+            tempCfg.TemperatureCurve.Add(250, 0.3f);
+            tempCfg.TemperatureCurve.Add(300, 1.0f);
+            tempCfg.TemperatureCurve.Add(350, 1.0f);
+            tempCfg.TemperatureCurve.Add(400, 0.3f);
+            tempCfg.TemperatureCurve.Add(500, 0.0f);
+
+            Configurations.Add(tempCfg.batteryType, tempCfg);
+            //-------Lead Acid Config END
+
+
+            //-------Lead Acid Config START
+            tempCfg = new BatteryConfig();
+            tempCfg.batteryType = BatteryTypes.CFG_lead_acid_singleUse;
+            tempCfg.PowerDensity = 400f;
+            tempCfg.EnergyDensity = 20f;
+            tempCfg.ChargeEfficiency = 0.9f;
+            tempCfg.ChargeRatio = 0.0f;
+            tempCfg.HighEClevel = 0.9f;
+            tempCfg.LowEClevel = 0.1f;
+            tempCfg.ThermalLosses = 0.1f;
+            tempCfg.CoreTempGoal = 320f; //273 + 47°C
+            tempCfg.ECbufferRatio = 1.0f;
 
             tempCfg.ChargeEfficiencyCurve = new FloatCurve();
             tempCfg.ChargeEfficiencyCurve.Add(0.0f, 1.0f);
@@ -102,10 +136,11 @@ namespace RealBattery
             tempCfg.EnergyDensity = 180f;
             tempCfg.ChargeEfficiency = 0.95f;
             tempCfg.ChargeRatio = 1f;
-            tempCfg.HighEClevel = 0.95f;
-            tempCfg.LowEClevel = 0.9f;
+            tempCfg.HighEClevel = 0.9f;
+            tempCfg.LowEClevel = 0.1f;
             tempCfg.ThermalLosses = 1f;
             tempCfg.CoreTempGoal = 340f; //273 + 67°C; 80°C thermal fuse, 140°C Meltdown
+            tempCfg.ECbufferRatio = 1.0f;
 
             tempCfg.ChargeEfficiencyCurve = new FloatCurve();
             tempCfg.ChargeEfficiencyCurve.Add(0.0f, 1.0f);
