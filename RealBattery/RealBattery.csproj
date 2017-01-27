@@ -59,6 +59,7 @@
     <None Include="old\RealBattery_20.cfg" />
     <None Include="old\RealBattery_100.cfg" />
     <None Include="GameData\RealBattery\RealBattery.version" />
+    <None Include="source\RealBattery.netkan" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="GameData\RealBattery\RealBattery.dll" />
