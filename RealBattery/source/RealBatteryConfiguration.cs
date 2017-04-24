@@ -88,8 +88,9 @@ namespace RealBattery
             tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.5f);
 
             tempCfg.TemperatureCurve = new FloatCurve();
-            tempCfg.TemperatureCurve.Add(200, 0.1f);
-            tempCfg.TemperatureCurve.Add(250, 0.3f);
+            tempCfg.TemperatureCurve.Add(0, 0.5f);
+            tempCfg.TemperatureCurve.Add(200, 0.5f);
+            tempCfg.TemperatureCurve.Add(250, 0.5f);
             tempCfg.TemperatureCurve.Add(300, 1.0f);
             tempCfg.TemperatureCurve.Add(350, 1.0f);
             tempCfg.TemperatureCurve.Add(400, 0.3f);
@@ -119,8 +120,9 @@ namespace RealBattery
             tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.5f);
 
             tempCfg.TemperatureCurve = new FloatCurve();
-            tempCfg.TemperatureCurve.Add(200, 0.1f);
-            tempCfg.TemperatureCurve.Add(250, 0.3f);
+            tempCfg.TemperatureCurve.Add(0, 0.5f);
+            tempCfg.TemperatureCurve.Add(200, 0.5f);
+            tempCfg.TemperatureCurve.Add(250, 0.5f);
             tempCfg.TemperatureCurve.Add(300, 1.0f);
             tempCfg.TemperatureCurve.Add(350, 1.0f);
             tempCfg.TemperatureCurve.Add(400, 0.3f);
@@ -138,7 +140,7 @@ namespace RealBattery
             tempCfg.ChargeRatio = 1f;
             tempCfg.HighEClevel = 0.9f;
             tempCfg.LowEClevel = 0.1f;
-            tempCfg.ThermalLosses = 1f;
+            tempCfg.ThermalLosses = 0.1f;
             tempCfg.CoreTempGoal = 340f; //273 + 67°C; 80°C thermal fuse, 140°C Meltdown
             tempCfg.ECbufferRatio = 1.0f;
 
@@ -149,8 +151,9 @@ namespace RealBattery
             tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.7f);
 
             tempCfg.TemperatureCurve = new FloatCurve();
-            tempCfg.TemperatureCurve.Add(200, 0.1f);
-            tempCfg.TemperatureCurve.Add(250, 0.3f);
+            tempCfg.TemperatureCurve.Add(0, 0.5f);
+            tempCfg.TemperatureCurve.Add(200, 0.5f);
+            tempCfg.TemperatureCurve.Add(250, 0.5f);
             tempCfg.TemperatureCurve.Add(280, 1.0f);
             tempCfg.TemperatureCurve.Add(340, 1.0f);
             tempCfg.TemperatureCurve.Add(360, 0.7f);
