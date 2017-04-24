@@ -9,7 +9,7 @@
         "homepage": "http://forum.kerbalspaceprogram.com/index.php?/topic/151164-121-real-battery-v114/",
         "repository": "https://github.com/blackliner/RealBattery"
     },
-    "version": "1.1.4",
+    "version": "1.1.5",
     "ksp_version": "1.2",
     "depends": [
         {
