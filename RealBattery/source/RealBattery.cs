@@ -152,8 +152,9 @@ namespace RealBattery
             EnergyDensity = batCfg.EnergyDensity;       
             ChargeEfficiency = batCfg.ChargeEfficiency; 
             ChargeRatio = batCfg.ChargeRatio;             
-            HighEClevel = batCfg.HighEClevel;           
-            LowEClevel = batCfg.LowEClevel;
+            // take cfg for now
+            // HighEClevel = batCfg.HighEClevel;           
+            // LowEClevel = batCfg.LowEClevel;
             ThermalLosses = batCfg.ThermalLosses;
             ChargeEfficiencyCurve = batCfg.ChargeEfficiencyCurve;
             TemperatureCurve = batCfg.TemperatureCurve;
