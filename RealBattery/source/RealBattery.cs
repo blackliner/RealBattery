@@ -155,7 +155,7 @@ namespace RealBattery
             // take cfg for now
             // HighEClevel = batCfg.HighEClevel;           
             // LowEClevel = batCfg.LowEClevel;
-            ThermalLosses = batCfg.ThermalLosses;
+            // ThermalLosses = batCfg.ThermalLosses;
             ChargeEfficiencyCurve = batCfg.ChargeEfficiencyCurve;
             TemperatureCurve = batCfg.TemperatureCurve;
 
@@ -250,6 +250,8 @@ namespace RealBattery
                 //nothing to do
                 return;
             }
+
+            part.force_activate();
 
             // get a fresh list
             if (rbList == null)

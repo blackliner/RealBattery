@@ -88,9 +88,9 @@ namespace RealBattery
             tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.5f);
 
             tempCfg.TemperatureCurve = new FloatCurve();
-            tempCfg.TemperatureCurve.Add(0, 0.5f);
-            tempCfg.TemperatureCurve.Add(200, 0.5f);
-            tempCfg.TemperatureCurve.Add(250, 0.5f);
+            tempCfg.TemperatureCurve.Add(0, 1.0f);
+            tempCfg.TemperatureCurve.Add(200, 1.0f);
+            tempCfg.TemperatureCurve.Add(250, 1.0f);
             tempCfg.TemperatureCurve.Add(300, 1.0f);
             tempCfg.TemperatureCurve.Add(350, 1.0f);
             tempCfg.TemperatureCurve.Add(400, 0.3f);
@@ -120,9 +120,9 @@ namespace RealBattery
             tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.5f);
 
             tempCfg.TemperatureCurve = new FloatCurve();
-            tempCfg.TemperatureCurve.Add(0, 0.5f);
-            tempCfg.TemperatureCurve.Add(200, 0.5f);
-            tempCfg.TemperatureCurve.Add(250, 0.5f);
+            tempCfg.TemperatureCurve.Add(0, 1.0f);
+            tempCfg.TemperatureCurve.Add(200, 1.0f);
+            tempCfg.TemperatureCurve.Add(250, 1.0f);
             tempCfg.TemperatureCurve.Add(300, 1.0f);
             tempCfg.TemperatureCurve.Add(350, 1.0f);
             tempCfg.TemperatureCurve.Add(400, 0.3f);
@@ -151,9 +151,9 @@ namespace RealBattery
             tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.7f);
 
             tempCfg.TemperatureCurve = new FloatCurve();
-            tempCfg.TemperatureCurve.Add(0, 0.5f);
-            tempCfg.TemperatureCurve.Add(200, 0.5f);
-            tempCfg.TemperatureCurve.Add(250, 0.5f);
+            tempCfg.TemperatureCurve.Add(0, 1.0f);
+            tempCfg.TemperatureCurve.Add(200, 1.0f);
+            tempCfg.TemperatureCurve.Add(250, 1.0f);
             tempCfg.TemperatureCurve.Add(280, 1.0f);
             tempCfg.TemperatureCurve.Add(340, 1.0f);
             tempCfg.TemperatureCurve.Add(360, 0.7f);
