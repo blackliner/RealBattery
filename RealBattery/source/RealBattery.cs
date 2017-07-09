@@ -61,7 +61,10 @@ namespace RealBattery
 
         // for slowing down the charge/discharge status
         private const double statusLowPassTau = 2;
-        private double lastECpower = 0;
+
+        // shows current charge (= positive value, means this part is CONSUMING xx EC/s) and discharge (= negative value, means this part is GENERATING xx EC/s) power
+        [KSPField(isPersistant = false)]
+        public double lastECpower = 0;
 
 
         //------GUI
