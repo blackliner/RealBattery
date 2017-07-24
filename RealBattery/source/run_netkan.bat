@@ -1,2 +1,2 @@
-netkan --verbose RealBattery.netkan
+netkan --debug RealBattery.netkan
 pause
