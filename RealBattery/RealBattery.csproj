@@ -13,10 +13,10 @@
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>GameData\RealBattery\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -70,8 +70,10 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>rmdir "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\GameData\RealBattery\" /s
-xcopy "$(TargetDir)." "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\GameData\RealBattery\" /Y</PostBuildEvent>
+    <PostBuildEvent>rmdir "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\GameData\RealBattery\" /s /q
+xcopy "$(TargetDir)." "C:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\GameData\RealBattery\" /Y
+
+"C:\Program Files\7-Zip\7z.exe" a -aoa "$(ProjectDir)RealBattery.zip" $(ProjectDir)\GameData\"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -112,9 +112,11 @@ namespace RealBattery
 
         private static int EC_id, SC_id;
 
+        private bool hasCoreHeat;
+
         public override void OnAwake()
         {
-            Debug.Log("RealBattery: OnAwake");
+            Debug.Log("RealBattery: INF OnAwake");
 
             loadConfig();
 
@@ -126,7 +128,7 @@ namespace RealBattery
 
         public override void OnLoad(ConfigNode node)
         {
-            Debug.Log("RealBattery: OnLoad");
+            Debug.Log("RealBattery: INF OnLoad");
 
             loadConfig();
 
@@ -166,17 +168,23 @@ namespace RealBattery
 
             double DischargeRate = part.mass * PowerDensity; //kW
 
+            hasCoreHeat = false;
+
             foreach (var module in part.Modules)
             {
                 if (module.GetType() == typeof(ModuleCoreHeat))
                 {
                     coreHeatModule = (ModuleCoreHeat)module;
-                    Debug.Log("RealBattery: ModuleCoreHeat FOUND!!!");
+                    Debug.Log("RealBattery: INF ModuleCoreHeat FOUND!!!");
+
+                    hasCoreHeat = true;
                 }
             }
 
             if (coreHeatModule != null)
             {
+                
+
                 coreHeatModule.CoreTempGoal = batCfg.CoreTempGoal;
                 coreHeatModule.MaxCoolant = 2 * DischargeRate * ThermalLosses;
             }
@@ -216,24 +224,22 @@ namespace RealBattery
 
         public override void OnStart(StartState state)
         {
-            Debug.Log("RealBattery: OnStart");
+            Debug.Log("RealBattery: INF OnStart");
 
             BatteryChargeStatus = "Initializing";
-            BatteryTempStatus = "-1 K / -1 K";
+            BatteryTempStatus = "-";
 
             readAllRealBatteryModules();
 
             GameEvents.onVesselChange.Add(readAllRealBatteryModules);
-            GameEvents.onVesselStandardModification.Add(readAllRealBatteryModules);            
-
-            part.force_activate();
+            GameEvents.onVesselStandardModification.Add(readAllRealBatteryModules);
 
             base.OnStart(state);
         }
 
         public override string GetInfo()
         {
-            Debug.Log("RealBattery: GetInfo");
+            Debug.Log("RealBattery: INF GetInfo");
 
             loadConfig();
 
@@ -254,7 +260,15 @@ namespace RealBattery
                 return;
             }
 
-            part.force_activate();
+            if (part != null)
+            {
+                part.force_activate();
+            }
+            else
+            {
+                Debug.Log("RealBattery: ERR readAllRealBatteryModules with part == null");
+            }
+            
 
             // get a fresh list
             if (rbList == null)
@@ -330,11 +344,15 @@ namespace RealBattery
             double DischargeRate = part.mass * PowerDensity;
 
             //thermal stuff
-            double currentTemp = coreHeatModule.CoreTemperature;
-            double maxTemp = coreHeatModule.CoreTempGoal;
+            double currentTemp = hasCoreHeat ? coreHeatModule.CoreTemperature : 0;
+            double maxTemp = hasCoreHeat ? coreHeatModule.CoreTempGoal : 0;
             double thermalEff = Math.Min(1, TemperatureCurve.Evaluate((float)currentTemp));
             
-            BatteryTempStatus = String.Format("{0:F1} K / {1:F1} K", currentTemp, maxTemp);
+            if(hasCoreHeat)
+            {
+                BatteryTempStatus = String.Format("{0:F1} K / {1:F1} K", currentTemp, maxTemp);
+            }
+            
 
             // increase this batteries buffer for warp
             //PartResource EC_buffer = part.Resources.Get("ElectricCharge");
@@ -376,7 +394,10 @@ namespace RealBattery
 
                 EC_thermal = ThermalLosses * EC_power * EC_power / DischargeRate * TimeWarp.fixedDeltaTime;
                 //part.AddThermalFlux(EC_thermal);
-                coreHeatModule.AddEnergyToCore(50 * EC_thermal);
+                if (hasCoreHeat)
+                {
+                    coreHeatModule.AddEnergyToCore(50 * EC_thermal); 
+                }
 
 
                 SC_delta = -EC_delta / RealBatteryConfiguration.EC2SCratio * ChargeEfficiency;          // SC_delta = -1EC / 10EC/SC * 0.9 = -0.09SC
@@ -397,7 +418,10 @@ namespace RealBattery
 
                 EC_thermal = ThermalLosses * EC_power * EC_power / DischargeRate * TimeWarp.fixedDeltaTime;
                 //part.AddThermalFlux(EC_thermal);
-                coreHeatModule.AddEnergyToCore(50 * EC_thermal);
+                if (hasCoreHeat)
+                {
+                    coreHeatModule.AddEnergyToCore(50 * EC_thermal); 
+                }
 
                 //BatteryChargeStatus = String.Format("Discharging {0:F1} EC/s", EC_power);
             }
