@@ -12,8 +12,6 @@ namespace RealBattery
         public bool isPopulated;
         public float PowerDensity;          // kW/t
         public float EnergyDensity;         // kWh/t
-        public float ChargeEfficiency;      // %
-        public float ChargeRatio;            // %
         public float HighEClevel;           // %
         public float LowEClevel;            // %
         public float ThermalLosses;         // %
@@ -21,7 +19,6 @@ namespace RealBattery
         public float ECbufferRatio;
 
         public FloatCurve ChargeEfficiencyCurve;
-        public FloatCurve TemperatureCurve; // Efficiency
     }
 
     public enum BatteryTypes
@@ -34,11 +31,6 @@ namespace RealBattery
 
     class RealBatteryConfiguration
     {
-        //not needed since enum
-        //public const string CFG_default = CFG_lead_acid;
-        //public const string CFG_lead_acid = "Lead_Acid";
-        //public const string CFG_li_ion = "Li_Ion";
-
         // Amount of Ec per storedCharge; 3600 EC = 1SC = 3600kWs = 1kWh
         public const double EC2SCratio = 3600;
                
@@ -56,7 +48,7 @@ namespace RealBattery
 
         private static SortedList<BatteryTypes, BatteryConfig> Configurations = new SortedList<BatteryTypes, BatteryConfig>();
 
-        private static void populateConfig()
+        private static void PopulateConfig()
         {
             if (Configurations.Count != 0)
             {
@@ -73,8 +65,6 @@ namespace RealBattery
             tempCfg.batteryType = BatteryTypes.CFG_lead_acid;
             tempCfg.PowerDensity = 400f;
             tempCfg.EnergyDensity = 20f;
-            tempCfg.ChargeEfficiency = 0.9f;
-            tempCfg.ChargeRatio = 0.1f;
             tempCfg.HighEClevel = 0.9f;
             tempCfg.LowEClevel = 0.1f;
             tempCfg.ThermalLosses = 0.1f;
@@ -82,19 +72,10 @@ namespace RealBattery
             tempCfg.ECbufferRatio = 1.0f;
 
             tempCfg.ChargeEfficiencyCurve = new FloatCurve();
-            tempCfg.ChargeEfficiencyCurve.Add(0.0f, 1.0f);
-            tempCfg.ChargeEfficiencyCurve.Add(0.5f, 1.0f);
-            tempCfg.ChargeEfficiencyCurve.Add(0.8f, 0.8f);
-            tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.5f);
-
-            tempCfg.TemperatureCurve = new FloatCurve();
-            tempCfg.TemperatureCurve.Add(0, 1.0f);
-            tempCfg.TemperatureCurve.Add(200, 1.0f);
-            tempCfg.TemperatureCurve.Add(250, 1.0f);
-            tempCfg.TemperatureCurve.Add(300, 1.0f);
-            tempCfg.TemperatureCurve.Add(350, 1.0f);
-            tempCfg.TemperatureCurve.Add(400, 0.3f);
-            tempCfg.TemperatureCurve.Add(500, 0.0f);
+            tempCfg.ChargeEfficiencyCurve.Add(0.0f, 0.1f);
+            tempCfg.ChargeEfficiencyCurve.Add(0.5f, 0.1f);
+            tempCfg.ChargeEfficiencyCurve.Add(0.8f, 0.08f);
+            tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.05f);
 
             Configurations.Add(tempCfg.batteryType, tempCfg);
             //-------Lead Acid Config END
@@ -105,8 +86,6 @@ namespace RealBattery
             tempCfg.batteryType = BatteryTypes.CFG_lead_acid_singleUse;
             tempCfg.PowerDensity = 400f;
             tempCfg.EnergyDensity = 20f;
-            tempCfg.ChargeEfficiency = 0.9f;
-            tempCfg.ChargeRatio = 0.0f;
             tempCfg.HighEClevel = 0.9f;
             tempCfg.LowEClevel = 0.1f;
             tempCfg.ThermalLosses = 0.1f;
@@ -114,19 +93,10 @@ namespace RealBattery
             tempCfg.ECbufferRatio = 1.0f;
 
             tempCfg.ChargeEfficiencyCurve = new FloatCurve();
-            tempCfg.ChargeEfficiencyCurve.Add(0.0f, 1.0f);
-            tempCfg.ChargeEfficiencyCurve.Add(0.5f, 1.0f);
-            tempCfg.ChargeEfficiencyCurve.Add(0.8f, 0.8f);
-            tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.5f);
-
-            tempCfg.TemperatureCurve = new FloatCurve();
-            tempCfg.TemperatureCurve.Add(0, 1.0f);
-            tempCfg.TemperatureCurve.Add(200, 1.0f);
-            tempCfg.TemperatureCurve.Add(250, 1.0f);
-            tempCfg.TemperatureCurve.Add(300, 1.0f);
-            tempCfg.TemperatureCurve.Add(350, 1.0f);
-            tempCfg.TemperatureCurve.Add(400, 0.3f);
-            tempCfg.TemperatureCurve.Add(500, 0.0f);
+            tempCfg.ChargeEfficiencyCurve.Add(0.0f, 0.1f);
+            tempCfg.ChargeEfficiencyCurve.Add(0.5f, 0.1f);
+            tempCfg.ChargeEfficiencyCurve.Add(0.8f, 0.08f);
+            tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.05f);
 
             Configurations.Add(tempCfg.batteryType, tempCfg);
             //-------Lead Acid Config END
@@ -134,10 +104,8 @@ namespace RealBattery
             //-------Li Ion Config START
             tempCfg = new BatteryConfig();
             tempCfg.batteryType = BatteryTypes.CFG_li_ion;
-            tempCfg.PowerDensity = 1800f;
-            tempCfg.EnergyDensity = 180f;
-            tempCfg.ChargeEfficiency = 0.95f;
-            tempCfg.ChargeRatio = 1f;
+            tempCfg.PowerDensity = 2000f;
+            tempCfg.EnergyDensity = 200f;
             tempCfg.HighEClevel = 0.9f;
             tempCfg.LowEClevel = 0.1f;
             tempCfg.ThermalLosses = 0.1f;
@@ -150,29 +118,20 @@ namespace RealBattery
             tempCfg.ChargeEfficiencyCurve.Add(0.9f, 0.8f);
             tempCfg.ChargeEfficiencyCurve.Add(1.0f, 0.7f);
 
-            tempCfg.TemperatureCurve = new FloatCurve();
-            tempCfg.TemperatureCurve.Add(0, 1.0f);
-            tempCfg.TemperatureCurve.Add(200, 1.0f);
-            tempCfg.TemperatureCurve.Add(250, 1.0f);
-            tempCfg.TemperatureCurve.Add(280, 1.0f);
-            tempCfg.TemperatureCurve.Add(340, 1.0f);
-            tempCfg.TemperatureCurve.Add(360, 0.7f);
-            tempCfg.TemperatureCurve.Add(410, 0.0f);
-
             Configurations.Add(tempCfg.batteryType, tempCfg);
             //-------Li Ion Config END
         }
 
-        public static BatteryConfig getConfig(BatteryTypes config)
+        public static BatteryConfig GetConfig(BatteryTypes config)
         {
-            populateConfig();
+            PopulateConfig();
 
             BatteryConfig retCfg = new BatteryConfig();
             
             if (!Configurations.ContainsKey(config))
             {
                 retCfg.isPopulated = false;
-                Debug.Log("RealBatter: Warning, config is not populated!");
+                Debug.Log("RealBattery: Warning, config is not populated!");
             }
             else
             {

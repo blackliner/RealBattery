@@ -53,6 +53,7 @@
     <Compile Include="source\RealBattery.cs" />
     <Compile Include="source\AssemblyInfo.cs" />
     <Compile Include="source\RealBatteryConfiguration.cs" />
+    <Compile Include="source\RealBatteryLoadMaster.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="GameData\RealBattery\RealBattery_mm.cfg" />
