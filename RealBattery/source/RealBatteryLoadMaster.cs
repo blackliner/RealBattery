@@ -27,10 +27,11 @@ namespace RealBattery
             GameEvents.onVesselWasModified.Remove(ReadAllRealBatteryModules);
         }
 
-        private static List<RealBattery> rbList = new List<RealBattery>();
+        private List<RealBattery> rbList = new List<RealBattery>();
         public void ReadAllRealBatteryModules(Vessel gameEventVessel = null)
         {
-            //RBlog("RealBattery: INF ReadAllRealBatteryModules");
+            //RBlog("RealBatteryLoadMaster: INF ReadAllRealBatteryModules");
+            RBlog("RealBatteryLoadMaster: INF ReadAllRealBatteryModules vesselName: " + vessel.GetDisplayName());
 
             if (vessel == null || vessel.Parts == null)
             {
@@ -51,20 +52,32 @@ namespace RealBattery
 
         public void FixedUpdate()
         {
+            RBlog("RealBatteryLoadMaster: INF FixedUpdate vesselName: " + vessel.GetDisplayName());
             if (!HighLogic.LoadedSceneIsFlight)
+            {
+                RBlog("RealBatteryLoadMaster: INF return because LoadedSceneIsFlight");
                 return;
+            }
             
             if (vessel == null)
-                return; //wtf?
+            {
+                RBlog("RealBatteryLoadMaster: INF return because vessel == null");
+                return;
+            }
 
             if (!vessel.loaded)
-                return;            
+            {
+                RBlog("RealBatteryLoadMaster: INF return because loaded");
+                return;
+            }
 
             // get vessel wide EC status (missing or available)
             vessel.GetConnectedResourceTotals(PartResourceLibrary.ElectricityHashcode, out double EC_amount, out double EC_maxAmount);
 
-            //Debug.Log("RealBattery: INF FixedUpdate EC_maxAmount: " + EC_maxAmount);
-            //Debug.Log("RealBattery: INF FixedUpdate rbList.Count: " + rbList.Count);
+            
+            RBlog("RealBatteryLoadMaster: INF FixedUpdate EC_maxAmount: " + EC_maxAmount);
+            RBlog("RealBatteryLoadMaster: INF FixedUpdate EC_amount: " + EC_amount);
+            RBlog("RealBatteryLoadMaster: INF FixedUpdate rbList.Count: " + rbList.Count);
 
             if (EC_maxAmount > 0 && rbList.Count != 0)
             {
@@ -82,11 +95,11 @@ namespace RealBattery
 
                     foreach (RealBattery rb in rbList)
                     {
-                        //Debug.Log("RealBattery: INF EC_delta_lowLevel < 0");
-                        //Debug.Log(String.Format("{0:F1} - {1:F1} - {2:F1} - {3:F1}", EC_delta_highLevel, EC_delta_lowLevel, EC_amount, EC_maxAmount));
+                        RBlog("RealBatteryLoadMaster: INF EC_delta_lowLevel < 0");
+                        RBlog(String.Format("{0:F1} - {1:F1} - {2:F1} - {3:F1}", EC_delta_highLevel, EC_delta_lowLevel, EC_amount, EC_maxAmount));
                         double deltaSucked = rb.XferECtoRealBattery(EC_delta_lowLevel);
 
-                        //Debug.Log("RealBattery: deltaSucked: " + deltaSucked.ToString());
+                        RBlog("RealBatteryLoadMaster: deltaSucked: " + deltaSucked.ToString());
 
                         EC_delta_lowLevel -= deltaSucked;
                     } 
@@ -98,14 +111,18 @@ namespace RealBattery
 
                     foreach (RealBattery rb in rbList)
                     {
-                        //Debug.Log("RealBattery: INF EC_delta_highLevel > 0");
-                        //Debug.Log(String.Format("{0:F1} - {1:F1} - {2:F1} - {3:F1}", EC_delta_highLevel, EC_delta_lowLevel, EC_amount, EC_maxAmount));
+                        RBlog("RealBatteryLoadMaster: INF EC_delta_highLevel > 0");
+                        RBlog(String.Format("{0:F1} - {1:F1} - {2:F1} - {3:F1}", EC_delta_highLevel, EC_delta_lowLevel, EC_amount, EC_maxAmount));
                         double deltaSucked = rb.XferECtoRealBattery(EC_delta_highLevel);
 
-                        //Debug.Log("RealBattery: deltaSucked: " + deltaSucked.ToString());
+                        RBlog("RealBatteryLoadMaster: deltaSucked: " + deltaSucked.ToString());
 
                         EC_delta_highLevel -= deltaSucked;
                     }
+                }
+                else
+                {
+                    RBlog("RealBatteryLoadMaster: nothing to do in the else path");
                 }
 
             }
@@ -113,6 +130,13 @@ namespace RealBattery
             // legacy but cool
             //rbList.ForEach(rb => rb.FixedUpdate());                    
 
+        }
+
+        private bool doLogDebugStuff = false;
+        private void RBlog(string message)
+        {
+            if (doLogDebugStuff) // just for debugging
+                Debug.Log(message);
         }
 
     }
